@@ -1,21 +1,18 @@
-package windows
+package main
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/sourcegraph/conc/pool"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
-
-	"golang.org/x/text/encoding/simplifiedchinese"
-	"golang.org/x/text/transform"
 )
 
 /**
@@ -54,7 +51,7 @@ func TestCreatePath(t *testing.T) {
 	}
 	t.Logf("mkdir: %s \n", mkdest)
 	// 创建文件
-	cmd := exec.Command("powershell", "fsutil", "file", "createnew", path.Join(mkdest, "test.txt"), "1073741824")
+	cmd := exec.Command("powershell", "fsutil", "file", "createnew", path.Join(mkdest, "tests.txt"), "1073741824")
 
 	//读取io.Writer类型的cmd.Stdout，再通过bytes.Buffer(缓冲byte类型的缓冲器)将byte类型转化为string类型(out.String():这是bytes类型提供的接口)
 	var sout, serr bytes.Buffer
@@ -67,7 +64,7 @@ func TestCreatePath(t *testing.T) {
 		fmt.Printf("%s", gbk_to_utf8(serr.Bytes()))
 		return
 	}
-	t.Logf("file: %s , cmd: %s\n", path.Join(mkdest, "test.txt"), gbk_to_utf8(sout.Bytes()))
+	t.Logf("file: %s , cmd: %s\n", path.Join(mkdest, "tests.txt"), gbk_to_utf8(sout.Bytes()))
 }
 
 func CopyFile(source string, dest string) (err error) {
@@ -153,7 +150,7 @@ func TestCopyDir(t *testing.T) {
 }
 
 func CopyDirByRoboCopy() {
-	cmd := exec.Command("powershell", "robocopy", "\""+srcdir+"\"", "\""+destdir+"\"", "/e", "/mt:12")
+	cmd := exec.Command("powershell", "robocopy", "\""+srcdir+"\"", "\""+destdir+"\"", "/e", "/R:5", "/W:5", "/mt:12")
 
 	//读取io.Writer类型的cmd.Stdout，再通过bytes.Buffer(缓冲byte类型的缓冲器)将byte类型转化为string类型(out.String():这是bytes类型提供的接口)
 	var sout, serr bytes.Buffer
@@ -205,16 +202,10 @@ func TestCopyDirByXcopy(t *testing.T) {
 	CopyDirByXcopy(t)
 }
 
-func gbk_to_utf8(s []byte) []byte {
-	reader := transform.NewReader(bytes.NewReader(s), simplifiedchinese.GBK.NewDecoder())
-	if d, e := ioutil.ReadAll(reader); e == nil {
-		return d
-	}
-	return s
-}
-
 func TestCopyDirWithParalle(t *testing.T) {
-	os.RemoveAll(destdir)
+
+	numCPU := runtime.NumCPU()
+	t.Logf("cpu: %d \n", numCPU)
 	copyDir(srcdir, destdir)
 }
 
